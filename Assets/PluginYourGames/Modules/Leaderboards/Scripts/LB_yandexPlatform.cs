@@ -1,4 +1,4 @@
-#if YandexGamesPlatform_yg
+#if YandexGamesPlatform_yg && !UNITY_IOS
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
