@@ -9,6 +9,10 @@ namespace YG
 {
     public partial class SavesYG
     {
+        [NonSerialized] private bool dragTransaction;
+        public void BeginDragTransaction() { dragTransaction = true; }
+        public void CommitDragTransaction() { dragTransaction = false; YG2.SaveProgress(); }
+        private void Persist() { if (!dragTransaction) YG2.SaveProgress(); }
         public int coins = 1500;
         public int level = 1;
         public SlotData[] slots = {
@@ -48,14 +52,14 @@ namespace YG
         public void AddCoins(int addMoney)
         {
             coins += addMoney;
-            YG2.SaveProgress();
+            Persist();
             UpdateRecord(YG2.saves.GetCoins());
         }
 
         public void SubCoins(int subMoney)
         {
             coins -= subMoney;
-            YG2.SaveProgress();
+            Persist();
             UpdateRecord(YG2.saves.GetCoins());
         }
 
@@ -69,7 +73,7 @@ namespace YG
             if (GetLevel() < GetMaxLevel())
             {
                 level++;
-                YG2.SaveProgress();
+                Persist();
             }
         }
 
@@ -111,7 +115,7 @@ namespace YG
         public void SaveSlotData(SlotData slotData)
         {
             slots[slotData.id] = slotData;
-            YG2.SaveProgress();
+            Persist();
         }
 
         public int GetMaxLevel()
@@ -141,7 +145,7 @@ namespace YG
             OnResetSaves?.Invoke();
 
             //YG2.SetDefaultSaves();
-            YG2.SaveProgress();
+            Persist();
         }
 
         public void UpdateRecord(int coins)

@@ -28,7 +28,7 @@ public class GameController : MonoBehaviour
     private Dictionary<int, Slot> slotDictionary;
 
     [Header("Main Canvas")]
-    [SerializeField] private GraphicRaycaster graphicRaycaster; // Ссылка на GraphicRaycaster
+    [SerializeField] private GraphicRaycaster graphicRaycaster; // РЎСЃС‹Р»РєР° РЅР° GraphicRaycaster
 
     private void Awake()
     {
@@ -53,44 +53,50 @@ public class GameController : MonoBehaviour
             slotDictionary.Add(i, slots[i]);
         }
 
-        // Автоматически находим GraphicRaycaster, если он не задан в инспекторе
+        // РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРё РЅР°С…РѕРґРёРј GraphicRaycaster, РµСЃР»Рё РѕРЅ РЅРµ Р·Р°РґР°РЅ РІ РёРЅСЃРїРµРєС‚РѕСЂРµ
         if (graphicRaycaster == null)
         {
             graphicRaycaster = FindFirstObjectByType<GraphicRaycaster>();
         }
     }
 
+    private void OnApplicationPause(bool paused) { if (paused) RestoreDrag(); }
+    private void OnApplicationQuit() { RestoreDrag(); }
+    private void OnDisable() { RestoreDrag(); }
+    private void RestoreDrag() { if (carryingItem != null) OnItemCarryFail(); }
+
     // Handle user input
     private void Update()
     {
-        // Проверяем, находится ли курсор мыши над UI-элементом
+        // РџСЂРѕРІРµСЂСЏРµРј, РЅР°С…РѕРґРёС‚СЃСЏ Р»Рё РєСѓСЂСЃРѕСЂ РјС‹С€Рё РЅР°Рґ UI-СЌР»РµРјРµРЅС‚РѕРј
         bool isOverUI = IsPointerOverAnyUI();
 
-        if (Input.GetMouseButtonDown(0)) // Левый клик мыши
+        if (Input.GetMouseButtonDown(0)) // Р›РµРІС‹Р№ РєР»РёРє РјС‹С€Рё
         {
-            if (!isOverUI) // Если курсор не над UI
+            if (!isOverUI) // Р•СЃР»Рё РєСѓСЂСЃРѕСЂ РЅРµ РЅР°Рґ UI
             {
                 SendRayCast();
             }
         }
 
-        if (Input.GetMouseButton(0) && carryingItem) // Удерживание левой кнопки мыши
+        if (Input.GetMouseButton(0) && carryingItem) // РЈРґРµСЂР¶РёРІР°РЅРёРµ Р»РµРІРѕР№ РєРЅРѕРїРєРё РјС‹С€Рё
         {
-            if (!isOverUI) // Если курсор не над UI
+            if (!isOverUI) // Р•СЃР»Рё РєСѓСЂСЃРѕСЂ РЅРµ РЅР°Рґ UI
             {
                 OnItemSelected();
             }
         }
 
-        if (Input.GetMouseButtonUp(0)) // Отпускание левой кнопки мыши
+        if (Input.GetMouseButtonUp(0) && isOverUI && carryingItem != null) OnItemCarryFail();
+        if (Input.GetMouseButtonUp(0)) // РћС‚РїСѓСЃРєР°РЅРёРµ Р»РµРІРѕР№ РєРЅРѕРїРєРё РјС‹С€Рё
         {
-            if (!isOverUI) // Если курсор не над UI
+            if (!isOverUI) // Р•СЃР»Рё РєСѓСЂСЃРѕСЂ РЅРµ РЅР°Рґ UI
             {
                 SendRayCast();
             }
         }
 
-        // Обновление текста цены продажи предмета
+        // РћР±РЅРѕРІР»РµРЅРёРµ С‚РµРєСЃС‚Р° С†РµРЅС‹ РїСЂРѕРґР°Р¶Рё РїСЂРµРґРјРµС‚Р°
         if (carryingItem != null)
         {
             saleItemPriceText.text = "+" + YG2.saves.GetItemSalePrice(carryingItem.itemId).ToString();
@@ -100,7 +106,7 @@ public class GameController : MonoBehaviour
             saleItemPriceText.text = "";
         }
 
-        // Обновление текста стоимости улучшения
+        // РћР±РЅРѕРІР»РµРЅРёРµ С‚РµРєСЃС‚Р° СЃС‚РѕРёРјРѕСЃС‚Рё СѓР»СѓС‡С€РµРЅРёСЏ
         if (YG2.saves.GetLevel() < maxItemId)
         {
             upgradeCostText.text = YG2.saves.GetAddLevelCost().ToString();
@@ -111,24 +117,24 @@ public class GameController : MonoBehaviour
         }
     }
 
-    // Метод для проверки, находится ли курсор или касание над любым UI элементом
+    // РњРµС‚РѕРґ РґР»СЏ РїСЂРѕРІРµСЂРєРё, РЅР°С…РѕРґРёС‚СЃСЏ Р»Рё РєСѓСЂСЃРѕСЂ РёР»Рё РєР°СЃР°РЅРёРµ РЅР°Рґ Р»СЋР±С‹Рј UI СЌР»РµРјРµРЅС‚РѕРј
     private bool IsPointerOverAnyUI()
     {
-        // Создаем данные для Raycast
+        // РЎРѕР·РґР°РµРј РґР°РЅРЅС‹Рµ РґР»СЏ Raycast
         PointerEventData pointerData = new PointerEventData(EventSystem.current);
-        pointerData.position = Input.mousePosition; // Позиция курсора или касания
+        pointerData.position = Input.mousePosition; // РџРѕР·РёС†РёСЏ РєСѓСЂСЃРѕСЂР° РёР»Рё РєР°СЃР°РЅРёСЏ
 
-        // Список результатов Raycast
+        // РЎРїРёСЃРѕРє СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ Raycast
         System.Collections.Generic.List<RaycastResult> results = new System.Collections.Generic.List<RaycastResult>();
 
-        // Выполняем Raycast
+        // Р’С‹РїРѕР»РЅСЏРµРј Raycast
         graphicRaycaster.Raycast(pointerData, results);
 
-        // Если есть хотя бы один результат, значит курсор над UI элементом
+        // Р•СЃР»Рё РµСЃС‚СЊ С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ СЂРµР·СѓР»СЊС‚Р°С‚, Р·РЅР°С‡РёС‚ РєСѓСЂСЃРѕСЂ РЅР°Рґ UI СЌР»РµРјРµРЅС‚РѕРј
         return results.Count > 0;
     }
 
-    // Остальной код остается без изменений
+    // РћСЃС‚Р°Р»СЊРЅРѕР№ РєРѕРґ РѕСЃС‚Р°РµС‚СЃСЏ Р±РµР· РёР·РјРµРЅРµРЅРёР№
     void SendRayCast()
     {
         RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
@@ -153,6 +159,7 @@ public class GameController : MonoBehaviour
                         carryingItem = itemGO.GetComponent<ItemInfo>();
                         carryingItem.InitDummy(slot.id, slot.currentItem.id);
 
+                        YG2.saves.BeginDragTransaction();
                         slot.ItemGrabbed();
                     }
                     // We are dropping an item to empty slot
@@ -162,6 +169,8 @@ public class GameController : MonoBehaviour
 
                         slot.CreateItem(carryingItem.itemId);
                         Destroy(carryingItem.gameObject);
+                        carryingItem = null;
+                        YG2.saves.CommitDragTransaction();
                     }
                     // We are dropping to full
                     else if (slot.state == SlotState.Full && carryingItem != null)
@@ -199,7 +208,7 @@ public class GameController : MonoBehaviour
         OnItemCarryFail();
     }
 
-    // Остальные методы остаются без изменений
+    // РћСЃС‚Р°Р»СЊРЅС‹Рµ РјРµС‚РѕРґС‹ РѕСЃС‚Р°СЋС‚СЃСЏ Р±РµР· РёР·РјРµРЅРµРЅРёР№
     void OnItemSelected()
     {
         _target = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -218,6 +227,8 @@ public class GameController : MonoBehaviour
         slot.CreateItem(carryingItem.itemId + 1);
 
         Destroy(carryingItem.gameObject);
+        carryingItem = null;
+        YG2.saves.CommitDragTransaction();
     }
 
     void OnItemCarryFail()
@@ -225,6 +236,8 @@ public class GameController : MonoBehaviour
         var slot = GetSlotById(carryingItem.slotId);
         slot.CreateItem(carryingItem.itemId);
         Destroy(carryingItem.gameObject);
+        carryingItem = null;
+        YG2.saves.CommitDragTransaction();
     }
 
     void SellItem()
@@ -232,6 +245,8 @@ public class GameController : MonoBehaviour
         YG2.saves.AddCoins(YG2.saves.GetItemSalePrice(carryingItem.itemId));
         soundManager.PlayAddCoinsSound();
         Destroy(carryingItem.gameObject);
+        carryingItem = null;
+        YG2.saves.CommitDragTransaction();
     }
 
     public void Upgrade()
