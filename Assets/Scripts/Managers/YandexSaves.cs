@@ -10,6 +10,7 @@ namespace YG
     public partial class SavesYG
     {
         [NonSerialized] private bool dragTransaction;
+        public bool IsDragTransactionActive => dragTransaction;
         public void BeginDragTransaction() { dragTransaction = true; }
         public void CommitDragTransaction() { dragTransaction = false; YG2.SaveProgress(); }
         private void Persist() { if (!dragTransaction) YG2.SaveProgress(); }

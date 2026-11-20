@@ -68,6 +68,11 @@ namespace YG
 
         public static void SaveProgress()
         {
+            // A dragged item is temporarily absent from its slot. Never persist
+            // that intermediate board through shop/audio/event save callers.
+            // CommitDragTransaction restores a consistent board before saving.
+            if (saves != null && saves.IsDragTransactionActive) return;
+
             if (!_SDKEnabled)
             {
 #if RU_YG2
