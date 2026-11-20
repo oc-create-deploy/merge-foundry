@@ -90,10 +90,27 @@ capture('03-real-move')
 before=board();drag(full()[0],{'x':.98,'y':.98})
 wait_for(lambda:board()==before)
 capture('04-invalid-drop-restored')
+# These probes require the updated readonly telemetry export (0e8187b+).
+buttons=[i for i in state()['items'] if i['kind']=='button' and i['interactable'] and 'AddItem' in (i.get('actions') or '').split(',')]
+assert buttons,'Purchase UI callback not observed'
+coins_before=saved()['coins'];count_before=len(full())
+action('- tapOn:\n    point: "'+point(buttons[0])+'"')
+wait_for(lambda:len(full())==count_before+1 and saved()['coins']<coins_before)
+capture('05-purchased')
+# Different tiers must not merge; both pieces and currency must survive.
+a,b=full()[:2];assert a['group']!=b['group']
+before=board();coins_before=saved()['coins'];drag(a,b)
+wait_for(lambda:board()==before and saved()['coins']==coins_before)
+capture('06-incompatible-restored')
+sale=next(i for i in state()['items'] if i['kind']=='saleArea')
+count_before=len(full());coins_before=saved()['coins']
+drag(max(full(),key=lambda i:i['group']),sale)
+wait_for(lambda:len(full())==count_before-1 and saved()['coins']>coins_before)
+capture('07-sold')
 coins=saved()['coins'];expected=board()
 subprocess.run(['xcrun','simctl','terminate',udid,bundle],check=True)
 for p in container.rglob('qa-state.json'):p.unlink()
 subprocess.run(['xcrun','simctl','launch',udid,bundle,'--playabilityQA'],check=True)
 wait_for(lambda:board()==expected and saved()['coins']==coins,300)
-capture('05-coldlaunch')
-(out/'result.json').write_text(json.dumps({'realMatchingMerge':True,'realEmptySlotMove':True,'invalidDropRestored':True,'boardCoinsColdlaunch':True,'fullProductAcceptance':False,'remainingChecks':['purchase','sale','incompatibleDrop','pauseMidDrag','visualAcceptance']}))
+capture('08-coldlaunch')
+(out/'result.json').write_text(json.dumps({'realMatchingMerge':True,'realEmptySlotMove':True,'invalidDropRestored':True,'boardCoinsColdlaunch':True,'fullProductAcceptance':False,'actualPurchase':True,'actualSale':True,'incompatibleDropRestored':True,'remainingChecks':['pauseMidDrag','visualAcceptance']}))
