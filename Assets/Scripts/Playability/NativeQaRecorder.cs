@@ -14,7 +14,7 @@ public sealed class NativeQaRecorder : MonoBehaviour
     [Serializable] public class Value {public string key,value;}
     [Serializable] public class Item
     {
-        public string kind,name,text;
+        public string kind,name,text,actions;
         public int id,group;public float x,y;public bool interactable;
         public List<string> colors=new List<string>();public List<Vector2> shape=new List<Vector2>();
     }
@@ -81,7 +81,8 @@ public sealed class NativeQaRecorder : MonoBehaviour
                 if(c is Button b && !hidden)
                 {
                     var item=Entry(c,"button");item.interactable=b.IsInteractable();
-                    item.text=string.Join(" ",b.GetComponentsInChildren<Component>().Where(x=>x!=null && x.GetType().GetProperty("text")!=null).Select(x=>x.GetType().GetProperty("text").GetValue(x,null) as string));state.items.Add(item);
+                    item.text=string.Join(" ",b.GetComponentsInChildren<Component>().Where(x=>x!=null && x.GetType().GetProperty("text")!=null).Select(x=>x.GetType().GetProperty("text").GetValue(x,null) as string));
+                    item.actions=string.Join(",",Enumerable.Range(0,b.onClick.GetPersistentEventCount()).Select(n=>b.onClick.GetPersistentMethodName(n)));state.items.Add(item);
                 }
                 if((c is Text || type.Contains("TextMeshPro")) && !hidden)
                 {var item=Entry(c,"text");item.text=Read(c,"text") as string;state.items.Add(item);}
@@ -114,6 +115,12 @@ public sealed class NativeQaRecorder : MonoBehaviour
                     }
                 }
             }
+            foreach(Collider2D c in FindObjectsOfType<Collider2D>())
+            {
+                if(!c.enabled || !c.CompareTag("SaleArea") || Camera.main==null) continue;
+                Vector3 point=Camera.main.WorldToScreenPoint(c.bounds.center);
+                state.items.Add(new Item{kind="saleArea",name=c.name,x=point.x/Screen.width,y=1-point.y/Screen.height,interactable=true});
+            }
             foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 Type yg=assembly.GetType("YG.YG2");if(yg==null) continue;
@@ -121,6 +128,9 @@ public sealed class NativeQaRecorder : MonoBehaviour
             }
             string path=Path.Combine(Application.persistentDataPath,"qa-state.json");File.WriteAllText(path,JsonUtility.ToJson(state,true));
         }
-        catch(Exception) { /* A missing probe fails host-side QA; never change gameplay to make a probe pass. */ }
+        catch(Exception e)
+        {
+            try { File.WriteAllText(Path.Combine(Application.persistentDataPath,"qa-recorder-error.txt"),e.ToString()); } catch(Exception) {}
+        }
     }
 }
