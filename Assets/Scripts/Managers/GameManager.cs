@@ -42,7 +42,8 @@ public class GameManager : MonoBehaviour
         originalScale = panel.transform.localScale;
         timer = delay;
 
-        if (YG2.player.photo != null)
+        if (System.Uri.TryCreate(YG2.player.photo, System.UriKind.Absolute, out var photoUri)
+            && (photoUri.Scheme == "https" || photoUri.Scheme == "http"))
         {
             StartCoroutine(DownloadImage(YG2.player.photo));
         }
