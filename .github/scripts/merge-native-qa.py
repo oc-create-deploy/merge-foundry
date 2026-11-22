@@ -54,6 +54,8 @@ def action(body):
         bridge.tap_direct(body.split('"')[1])
     else: bridge.action(body)
     time.sleep(.1)
+    # Retain actual post-input observation even when the next assertion fails.
+    capture(f"input-{seq:03}-after")
 
 def tap(text):
     choices=[i for i in state()['items'] if i['kind']=='button' and i['interactable'] and text.casefold() in (i.get('text','').strip().casefold(),i['name'].strip().casefold())]
