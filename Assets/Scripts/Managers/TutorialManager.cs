@@ -27,6 +27,9 @@ public class TutorialManager : MonoBehaviour
 
     void Start()
     {
+        // Hints decorate the board; they must not intercept gameplay drags.
+        foreach (var graphic in GetComponentsInChildren<Graphic>(true))
+            graphic.raycastTarget = false;
         gameObject.SetActive(!YG2.saves.isTutorialCompleted);
 
         if (tutorialSteps.Count > 0)
@@ -124,6 +127,8 @@ public class TutorialManager : MonoBehaviour
         {
             // Создать волну на указанной позиции
             GameObject wave = Instantiate(pulseWavePrefab, position, Quaternion.identity, transform);
+            foreach (var graphic in wave.GetComponentsInChildren<Graphic>(true))
+                graphic.raycastTarget = false;
             wave.transform.SetAsFirstSibling(); // Поместить волну под другие UI элементы
 
             // Запустить анимацию волны
