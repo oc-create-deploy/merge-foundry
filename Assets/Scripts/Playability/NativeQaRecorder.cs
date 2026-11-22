@@ -20,7 +20,7 @@ public sealed class NativeQaRecorder : MonoBehaviour
     }
     [Serializable] public class Snapshot
     {
-        public string scene;public int frame,width,height;
+        public string scene,timestampUtc;public int frame,width,height;
         public float safeX,safeY,safeW,safeH;
         public List<Value> values=new List<Value>();public List<Item> items=new List<Item>();public List<string> errors=new List<string>();
     }
@@ -31,7 +31,10 @@ public sealed class NativeQaRecorder : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Boot()
     {
-        if(instance!=null || !Environment.GetCommandLineArgs().Any(x=>x.Contains("playabilityQA") || x.Contains("playability-qa"))) return;
+        if(instance!=null) return;
+#if !PLAYABLE_IOS_SIMULATOR
+        if(!Environment.GetCommandLineArgs().Any(x=>x.Contains("playabilityQA") || x.Contains("playability-qa"))) return;
+#endif
         instance=new GameObject("Read-only QA recorder").AddComponent<NativeQaRecorder>();DontDestroyOnLoad(instance.gameObject);
         Application.logMessageReceived += instance.Log;
     }
@@ -67,7 +70,7 @@ public sealed class NativeQaRecorder : MonoBehaviour
         try
         {
             Rect safe=Screen.safeArea;
-            var state=new Snapshot{scene=SceneManager.GetActiveScene().name,frame=Time.frameCount,width=Screen.width,height=Screen.height,safeX=safe.x,safeY=safe.y,safeW=safe.width,safeH=safe.height,errors=new List<string>(errors)};
+            var state=new Snapshot{timestampUtc=DateTime.UtcNow.ToString("o"),scene=SceneManager.GetActiveScene().name,frame=Time.frameCount,width=Screen.width,height=Screen.height,safeX=safe.x,safeY=safe.y,safeW=safe.width,safeH=safe.height,errors=new List<string>(errors)};
             string[] fields={"Score","Coins","IsPlaying","Remaining","TrayCount","Won","Lost","coins","workers","factories","prestige","best","lane","distance","state","points","recordPoints","playerCount","currentLevel","carryingItem"};
             string[] models={"MetroDashGame","EmpireIdleGame","MatchscapeGame","GameManager","GameController","GameFlowManager","LevelController","PlayerManager"};
             foreach(MonoBehaviour c in FindObjectsOfType<MonoBehaviour>())
@@ -127,7 +130,9 @@ public sealed class NativeQaRecorder : MonoBehaviour
                 FieldInfo f=yg.GetField("saves",BindingFlags.Static|BindingFlags.Public);if(f!=null && f.GetValue(null)!=null) state.values.Add(new Value{key="YG2.saves",value=JsonUtility.ToJson(f.GetValue(null))});break;
             }
             Directory.CreateDirectory(Application.persistentDataPath);
-            string path=Path.Combine(Application.persistentDataPath,"qa-state.json");File.WriteAllText(path,JsonUtility.ToJson(state,true));
+            string path=Path.Combine(Application.persistentDataPath,"qa-state.json");
+            string temp=path+".tmp";File.WriteAllText(temp,JsonUtility.ToJson(state,true));
+            if(File.Exists(path)) File.Replace(temp,path,null); else File.Move(temp,path);
         }
         catch(Exception e)
         {

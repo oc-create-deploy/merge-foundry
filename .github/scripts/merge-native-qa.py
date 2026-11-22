@@ -1,5 +1,7 @@
 """Drive normal native touch input; QA snapshots are read-only observations."""
 import json, os, pathlib, subprocess, time
+from datetime import datetime, timezone
+launch_utc = datetime.now(timezone.utc)
 out = pathlib.Path('screenshots'); out.mkdir(exist_ok=True)
 udid = os.environ['UDID']; bundle = os.environ['APP_BUNDLE_ID']
 container = pathlib.Path(subprocess.check_output(['xcrun','simctl','get_app_container',udid,bundle,'data'],text=True).strip())
@@ -17,7 +19,7 @@ def state():
             try:
                 s=json.loads(p.read_text())
                 assert not s['errors'],s['errors']
-                if s["frame"] >= 30: return s
+                if s["frame"] >= 30 and datetime.fromisoformat(s["timestampUtc"].replace("Z","+00:00")) >= launch_utc: return s
             except (json.JSONDecodeError,FileNotFoundError): pass
         # Simulator can relocate the data container during a slow first launch.
         try:
@@ -110,6 +112,7 @@ capture('07-sold')
 coins=saved()['coins'];expected=board()
 subprocess.run(['xcrun','simctl','terminate',udid,bundle],check=True)
 for p in container.rglob('qa-state.json'):p.unlink()
+launch_utc = datetime.now(timezone.utc)
 subprocess.run(['xcrun','simctl','launch',udid,bundle,'--playabilityQA'],check=True)
 wait_for(lambda:board()==expected and saved()['coins']==coins,300)
 capture('08-coldlaunch')
